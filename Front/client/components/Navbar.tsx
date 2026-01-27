@@ -9,6 +9,10 @@ export default function Navbar() {
   const { locale, setLocale, t } = useLocale();
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
+  const role = user?.role || 'guest';
+  const canPostJob = role === 'client' || role === 'both' || role === 'admin' || role === 'guest';
+  const canFindJobs = role === 'freelancer' || role === 'both' || role === 'admin' || role === 'guest';
+  const canBrowseTalents = role === 'client' || role === 'both' || role === 'admin' || role === 'guest';
 
   const handleLogout = () => {
     logout();
@@ -21,32 +25,38 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-secondary">
-              <span className="text-lg font-bold text-white">F</span>
+            <div className="flex h-15 w-15 items-center justify-center rounded-lg from-primary to-secondary">
+              <img src="logo.png" alt="logo" className="h-12 w-12" />
             </div>
             <span className="hidden font-bold text-foreground sm:inline">FreelanceKZ</span>
           </Link>
 
           {/* Nav Links - Desktop */}
           <div className="hidden gap-8 md:flex">
-            <Link
-              to="/browse"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t('nav.browse')}
-            </Link>
-            <Link
-              to="/jobs"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Find Jobs
-            </Link>
-            <Link
-              to="/post-job"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {t('nav.postJob')}
-            </Link>
+            {canBrowseTalents && (
+              <Link
+                to="/browse"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {t('nav.browse')}
+              </Link>
+            )}
+            {canFindJobs && (
+              <Link
+                to="/jobs"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Find Jobs
+              </Link>
+            )}
+            {canPostJob && (
+              <Link
+                to="/post-job"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {t('nav.postJob')}
+              </Link>
+            )}
           </div>
 
           {/* Right Actions */}

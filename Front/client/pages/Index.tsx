@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useLocale } from '@/contexts/LocaleContext';
+import { useGamification } from '@/hooks/use-gamification';
+import { LEVEL_ORDER } from '@/lib/gamification';
 import Navbar from '@/components/Navbar';
 import ProfessionalismBadge from '@/components/ProfessionalismBadge';
 import LevelProgressCard from '@/components/LevelProgressCard';
@@ -9,6 +11,8 @@ import { Link } from 'react-router-dom';
 
 export default function Index() {
   const { t } = useLocale();
+  const { level, progress, completedProjects, rating, isAuthenticated, isLoading } = useGamification();
+  const showPersonalized = isAuthenticated && !isLoading;
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
@@ -162,7 +166,7 @@ export default function Index() {
 
           {/* Level Showcase */}
           <div className="grid gap-4 mb-12">
-            {(['novice', 'intermediate', 'expert', 'master', 'legend'] as const).map((level, idx) => (
+            {LEVEL_ORDER.map((level, idx) => (
               <div
                 key={level}
                 className="flex items-center gap-4 rounded-lg border border-border bg-card p-6 transition-all hover:shadow-md hover:border-primary/50"
@@ -185,10 +189,10 @@ export default function Index() {
           {/* Sample Progress Card */}
           <div className="max-w-2xl mx-auto">
             <LevelProgressCard
-              currentLevel="expert"
-              progressPercentage={68}
-              completedProjects={28}
-              rating={4.9}
+              currentLevel={showPersonalized ? level : 'expert'}
+              progressPercentage={showPersonalized ? progress : 68}
+              completedProjects={showPersonalized ? completedProjects : 28}
+              rating={showPersonalized ? rating : 4.9}
             />
           </div>
         </div>

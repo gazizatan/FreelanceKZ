@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Star } from 'lucide-react';
-
-type ProfessionalismLevel = 'novice' | 'intermediate' | 'expert' | 'master' | 'legend';
+import { useLocale } from '@/contexts/LocaleContext';
+import { ProfessionalismLevel, getLevelLabel } from '@/lib/gamification';
 
 interface ProfessionalismlevelBadgeProps {
   level: ProfessionalismLevel;
@@ -47,6 +47,7 @@ export default function ProfessionalismBadge({
   showLabel = true,
   size = 'md',
 }: ProfessionalismlevelBadgeProps) {
+  const { t } = useLocale();
   const config = LEVELS[level];
   const starSize = size === 'sm' ? 14 : size === 'lg' ? 20 : 16;
 
@@ -80,7 +81,7 @@ export default function ProfessionalismBadge({
             size === 'lg' && 'text-base'
           )}
         >
-          {config.label}
+          {getLevelLabel(level, t) || config.label}
         </span>
       )}
     </div>

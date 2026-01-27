@@ -8,6 +8,7 @@ import ProfessionalismBadge from '@/components/ProfessionalismBadge';
 import LevelProgressCard from '@/components/LevelProgressCard';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGamification } from '@/hooks/use-gamification';
 import { Edit2, MapPin, Clock, Star, Award, Briefcase, Users, MessageCircle, Plus, Trash2, Building, GraduationCap, Briefcase as WorkIcon, Shield } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +19,7 @@ import { apiFetch } from '@/lib/api';
 export default function Profile() {
   const { t } = useLocale();
   const { isAuthenticated, user, freelancer, isLoading, logout, updateFreelancer, addEducation, deleteEducation, addExperience, deleteExperience, addSkill, removeSkill, refreshProfile } = useAuth();
+  const { level: gamificationLevel, progress: gamificationProgress, xp: gamificationXp } = useGamification();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -285,12 +287,6 @@ export default function Profile() {
     level: 'novice',
   };
 
-  const gamificationLevel = (user.level || freelancerData.level || 'novice') as 'novice' | 'intermediate' | 'expert' | 'master' | 'legend';
-  const gamificationProgress = typeof user.professionalism === 'number'
-    ? user.professionalism
-    : (freelancerData.professionalism || 0);
-  const gamificationXp = typeof user.xp === 'number' ? user.xp : 0;
-
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       <Navbar />
@@ -400,7 +396,7 @@ export default function Profile() {
 
               {/* Professionalism Badge */}
               <div className="mt-8 border-t border-border pt-8">
-                <ProfessionalismBadge level={freelancerData.level || 'novice'} size="lg" />
+                <ProfessionalismBadge level={gamificationLevel} size="lg" />
               </div>
             </div>
           </div>
@@ -471,7 +467,7 @@ export default function Profile() {
                 <p className="text-sm font-medium text-muted-foreground">Professionalism</p>
                 <Award className="text-secondary" size={20} />
               </div>
-              <p className="text-3xl font-bold text-foreground">{freelancerData.professionalism || 0}%</p>
+              <p className="text-3xl font-bold text-foreground">{gamificationProgress}%</p>
             </Card>
 
             <Card className="p-6">

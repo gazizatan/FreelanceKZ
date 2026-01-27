@@ -2,8 +2,8 @@ import ProfessionalismBadge from './ProfessionalismBadge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-
-type ProfessionalismLevel = 'novice' | 'intermediate' | 'expert' | 'master' | 'legend';
+import { useLocale } from '@/contexts/LocaleContext';
+import { ProfessionalismLevel, getLevelLabel, getNextLevel } from '@/lib/gamification';
 
 interface LevelProgressCardProps {
   currentLevel: ProfessionalismLevel;
@@ -12,21 +12,15 @@ interface LevelProgressCardProps {
   rating?: number;
 }
 
-const LEVELS_DATA: Record<ProfessionalismLevel, { nextLevel: string | null; pointsNeeded: number }> = {
-  novice: { nextLevel: 'Intermediate', pointsNeeded: 100 },
-  intermediate: { nextLevel: 'Expert', pointsNeeded: 250 },
-  expert: { nextLevel: 'Master', pointsNeeded: 500 },
-  master: { nextLevel: 'Legend', pointsNeeded: 1000 },
-  legend: { nextLevel: null, pointsNeeded: 0 },
-};
-
 export default function LevelProgressCard({
   currentLevel,
   progressPercentage,
   completedProjects = 0,
   rating = 4.8,
 }: LevelProgressCardProps) {
-  const levelData = LEVELS_DATA[currentLevel];
+  const { t } = useLocale();
+  const nextLevel = getNextLevel(currentLevel);
+  const nextLevelLabel = nextLevel ? getLevelLabel(nextLevel, t) : null;
   const chartData = [
     { name: 'Progress', value: progressPercentage },
     { name: 'Remaining', value: Math.max(0, 100 - progressPercentage) },
@@ -48,7 +42,7 @@ export default function LevelProgressCard({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
-              {levelData.nextLevel ? `Progress to ${levelData.nextLevel}` : 'Maximum Level'}
+              {nextLevelLabel ? `Progress to ${nextLevelLabel}` : 'Maximum Level'}
             </span>
             <span className="text-sm font-bold text-primary">{progressPercentage}%</span>
           </div>

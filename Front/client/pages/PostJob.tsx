@@ -1,66 +1,233 @@
+import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
 import { useLocale } from '@/contexts/LocaleContext';
-import { ArrowRight } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { apiFetch } from '@/lib/api';
+import { ProfessionalismLevel, LEVEL_ORDER } from '@/lib/gamification';
+import { useNavigate } from 'react-router-dom';
+
+const CATEGORY_OPTIONS = [
+  { id: 'design', label: 'Design' },
+  { id: 'development', label: 'Development' },
+  { id: 'writing', label: 'Writing' },
+  { id: 'marketing', label: 'Marketing' },
+  { id: 'other', label: 'Other' },
+];
 
 export default function PostJob() {
   const { t } = useLocale();
+  const { isAuthenticated, user, isLoading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    category: 'design',
+    budget: '',
+    timeframe: '',
+    level: 'intermediate' as ProfessionalismLevel,
+    skills: '',
+  });
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) return;
+    const role = user?.role || 'guest';
+    const canPostJob = role === 'client' || role === 'both' || role === 'admin';
+    if (!canPostJob) {
+      toast({
+        title: 'Access denied',
+        description: 'Only clients can post jobs.',
+        variant: 'destructive',
+      });
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, isLoading, user?.role, navigate, toast]);
+
+  const handleChange = (key: keyof typeof form, value: string) => {
+    setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!form.title.trim() || !form.description.trim()) {
+      toast({
+        title: 'Missing fields',
+        description: 'Title and description are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const userId = localStorage.getItem('user_id');
+      const skills = form.skills
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const response = await apiFetch('/api/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId || '',
+        },
+        body: JSON.stringify({
+          title: form.title.trim(),
+          description: form.description.trim(),
+          category: form.category,
+          budget: form.budget.trim(),
+          timeframe: form.timeframe.trim(),
+          level: form.level,
+          skills,
+          created_by: userId || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to post job');
+      }
+
+      setForm({
+        title: '',
+        description: '',
+        category: 'design',
+        budget: '',
+        timeframe: '',
+        level: 'intermediate',
+        skills: '',
+      });
+
+      toast({
+        title: 'Job posted',
+        description: 'Your project is now live for freelancers.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to post the job. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       <Navbar />
-      
-      <section className="px-4 py-20 sm:py-32">
-        <div className="mx-auto max-w-5xl text-center">
-          <div className="mb-8 inline-block rounded-full bg-secondary/10 px-4 py-2">
-            <span className="text-sm font-semibold text-secondary">Coming Soon</span>
-          </div>
-          
-          <h1 className="text-5xl font-bold text-foreground sm:text-6xl mb-6">
-            {t('nav.postJob')}
-          </h1>
-          
-          <p className="text-lg text-muted-foreground sm:text-xl max-w-2xl mx-auto mb-12">
-            Post your project and find the perfect freelancer. Our matching algorithm will connect you with the best talent for your needs.
-          </p>
 
-          <div className="rounded-xl border border-border bg-muted/30 p-12">
-            <p className="text-muted-foreground mb-8">
-              🎯 Want to see this page fully implemented? Just ask in the chat and we'll build it out for you!
+      <section className="px-4 py-12 sm:py-20">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-10 text-center">
+            <h1 className="text-4xl font-bold text-foreground sm:text-5xl mb-4">
+              {t('nav.postJob')}
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Share your project details and receive proposals from top freelancers.
             </p>
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-primary to-secondary text-white"
-              onClick={() => {
-                window.location.hash = '#request-feature';
-              }}
-            >
-              Request Feature Implementation
-              <ArrowRight className="ml-2" size={18} />
-            </Button>
           </div>
 
-          <div className="mt-16">
-            <h2 className="text-2xl font-bold text-foreground mb-8">What This Page Will Include:</h2>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-lg border border-border p-6 text-left">
-                <h3 className="font-semibold text-foreground mb-2">📝 Job Details Form</h3>
-                <p className="text-sm text-muted-foreground">Describe your project, budget, timeline, and requirements</p>
+          <Card className="p-6 sm:p-8">
+            <div className="grid gap-6">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">Project title</label>
+                <Input
+                  value={form.title}
+                  onChange={(e) => handleChange('title', e.target.value)}
+                  placeholder="e.g. Build a landing page for SaaS"
+                />
               </div>
-              <div className="rounded-lg border border-border p-6 text-left">
-                <h3 className="font-semibold text-foreground mb-2">⭐ Skill Matching</h3>
-                <p className="text-sm text-muted-foreground">Specify required skills and professionalism levels</p>
+
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">Description</label>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  placeholder="Describe goals, deliverables, and requirements"
+                  rows={6}
+                />
               </div>
-              <div className="rounded-lg border border-border p-6 text-left">
-                <h3 className="font-semibold text-foreground mb-2">💰 Budget Planning</h3>
-                <p className="text-sm text-muted-foreground">Set fixed price, hourly rate, or use our suggested pricing</p>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-foreground">Category</label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => handleChange('category', e.target.value)}
+                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    {CATEGORY_OPTIONS.map(option => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-foreground">Required level</label>
+                  <select
+                    value={form.level}
+                    onChange={(e) => handleChange('level', e.target.value)}
+                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    {LEVEL_ORDER.map(level => (
+                      <option key={level} value={level}>
+                        {level.charAt(0).toUpperCase() + level.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="rounded-lg border border-border p-6 text-left">
-                <h3 className="font-semibold text-foreground mb-2">🎯 AI Recommendations</h3>
-                <p className="text-sm text-muted-foreground">Get smart suggestions for timeline and budget</p>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-foreground">Budget</label>
+                  <Input
+                    value={form.budget}
+                    onChange={(e) => handleChange('budget', e.target.value)}
+                    placeholder="e.g. $2,000 - $3,500"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium text-foreground">Timeframe</label>
+                  <Input
+                    value={form.timeframe}
+                    onChange={(e) => handleChange('timeframe', e.target.value)}
+                    placeholder="e.g. 4-6 weeks"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-foreground">Skills (comma separated)</label>
+                <Input
+                  value={form.skills}
+                  onChange={(e) => handleChange('skills', e.target.value)}
+                  placeholder="React, TypeScript, UI/UX"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-primary to-secondary text-white"
+                >
+                  {isSubmitting ? 'Posting...' : 'Post Job'}
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       </section>
     </div>

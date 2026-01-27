@@ -1,10 +1,32 @@
+import { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { useLocale } from '@/contexts/LocaleContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function BrowseTalents() {
   const { t } = useLocale();
+  const { isAuthenticated, user, isLoading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) return;
+    const role = user?.role || 'guest';
+    const canBrowseTalents = role === 'client' || role === 'both' || role === 'admin';
+    if (!canBrowseTalents) {
+      toast({
+        title: 'Access denied',
+        description: 'Only clients can browse talents.',
+        variant: 'destructive',
+      });
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, isLoading, user?.role, navigate, toast]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-black">
