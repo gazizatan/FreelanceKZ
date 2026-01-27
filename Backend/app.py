@@ -215,7 +215,29 @@ def register():
         "created_at": datetime.utcnow()
     }
     result = db.users.insert_one(user)
-    return jsonify({"user_id": str(result.inserted_id), "role": role}), 201
+    user_id = str(result.inserted_id)
+
+    if role in ["freelancer", "both"]:
+        freelancer_profile = {
+            "user_id": user_id,
+            "title": "",
+            "bio": "",
+            "skills": [],
+            "hourly_rate": None,
+            "location": "",
+            "languages": [],
+            "education": [],
+            "experience": [],
+            "certifications": [],
+            "completed_projects": 0,
+            "rating": 0,
+            "professionalism": 0,
+            "level": "novice",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        db.freelancers.insert_one(freelancer_profile)
+    return jsonify({"user_id": user_id, "role": role}), 201
 
 
 @app.post("/api/auth/login")
@@ -234,6 +256,25 @@ def login():
         pass
 
     return jsonify({"user_id": str(user["_id"]), "role": user["role"]})
+
+
+@app.post("/api/gamification/xp")
+def add_xp_endpoint():
+    payload = request.get_json(force=True) or {}
+    user_id = request.headers.get("X-User-Id")
+    if not user_id:
+        return jsonify({"error": "user not authenticated"}), 401
+    try:
+        amount = int(payload.get("amount", 1))
+    except Exception:
+        return jsonify({"error": "amount must be a number"}), 400
+    if amount <= 0 or amount > 100:
+        return jsonify({"error": "amount must be between 1 and 100"}), 400
+    try:
+        updated = add_xp(user_id, amount)
+        return jsonify(updated)
+    except ValueError:
+        return jsonify({"error": "invalid user id"}), 400
 
 
 # eGov OAuth Configuration
@@ -378,11 +419,10 @@ def egov_register():
             update_fields["iin_hash"] = hash_iin(iin)
         if email:
             update_fields["email"] = email
-            
-        db.users.update_one(
-            {"_id": existing_user["_id"]},
-            {"$set": update_fields}
-        )
+        if "xp" not in existing_user:
+            update_fields["xp"] = 0
+            update_fields["level"] = "novice"
+            update_fields["professionalism"] = 0
         
         # Also update freelancer profile if exists
         user_id = str(existing_user["_id"])
@@ -393,11 +433,6 @@ def egov_register():
                 update_freelancer["phone"] = phone
             db.freelancers.update_one({"user_id": user_id}, {"$set": update_freelancer})
         
-        if "xp" not in existing_user:
-            update_fields["xp"] = 0
-            update_fields["level"] = "novice"
-            update_fields["professionalism"] = 0
-
         db.users.update_one(
             {"_id": existing_user["_id"]},
             {"$set": update_fields}
@@ -426,6 +461,9 @@ def egov_register():
         "fullName": fullName,
         "password": random_password,
         "role": role,
+        "xp": 0,
+        "level": "novice",
+        "professionalism": 0,
         "egov_auth": True,
         "created_at": datetime.utcnow()
     }
@@ -489,6 +527,12 @@ def egov_verify():
     if email:
         update_fields["email"] = email
 
+    existing_user = db.users.find_one({"_id": object_id})
+    if existing_user and "xp" not in existing_user:
+        update_fields["xp"] = 0
+        update_fields["level"] = "novice"
+        update_fields["professionalism"] = 0
+
     db.users.update_one({"_id": object_id}, {"$set": update_fields})
 
     # Also update freelancer profile if exists
@@ -521,7 +565,16 @@ def get_current_user():
     user = db.users.find_one({"_id": object_id})
     if not user:
         return jsonify({"error": "user not found"}), 404
-    
+
+    if "xp" not in user:
+        db.users.update_one(
+            {"_id": object_id},
+            {"$set": {"xp": 0, "level": "novice", "professionalism": 0}}
+        )
+        user["xp"] = 0
+        user["level"] = "novice"
+        user["professionalism"] = 0
+
     # Get freelancer profile if applicable
     freelancer = None
     if user.get("role") in ["freelancer", "both"]:
@@ -575,6 +628,15 @@ def get_profile(user_id):
     user = db.users.find_one({"_id": object_id})
     if not user:
         return jsonify({"error": "user not found"}), 404
+
+    if "xp" not in user:
+        db.users.update_one(
+            {"_id": object_id},
+            {"$set": {"xp": 0, "level": "novice", "professionalism": 0}}
+        )
+        user["xp"] = 0
+        user["level"] = "novice"
+        user["professionalism"] = 0
     
     freelancer = db.freelancers.find_one({"user_id": user_id})
     

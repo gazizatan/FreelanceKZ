@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, createContext, useContext } from 'react';
+import { apiFetch } from '@/lib/api';
 
 interface User {
   id: string;
@@ -8,6 +9,9 @@ interface User {
   iin?: string;
   role?: string;
   egov_auth?: boolean;
+  xp?: number;
+  level?: string;
+  professionalism?: number;
 }
 
 interface FreelancerProfile {
@@ -101,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAccessToken(token);
           
           // Fetch user profile from backend
-          const response = await fetch('/api/users/me', {
+          const response = await apiFetch('/api/users/me', {
             headers: {
               'X-User-Id': userId,
               'Authorization': `Bearer ${token || ''}`,
@@ -110,15 +114,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (response.ok) {
             const data = await response.json();
-            setUser({
-              id: data.user._id,
-              email: data.user.email,
-              fullName: data.user.fullName,
-              phone: data.user.phone,
-              iin: data.user.iin,
-              role: data.user.role,
-              egov_auth: data.user.egov_auth,
-            });
+              setUser({
+                id: data.user._id,
+                email: data.user.email,
+                fullName: data.user.fullName,
+                phone: data.user.phone,
+                iin: data.user.iin,
+                role: data.user.role,
+                egov_auth: data.user.egov_auth,
+                xp: data.user.xp,
+                level: data.user.level,
+                professionalism: data.user.professionalism,
+              });
             if (data.freelancer) {
               setFreelancer(data.freelancer);
             }
@@ -149,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userId = localStorage.getItem('user_id');
       const token = localStorage.getItem('access_token');
       
-      const response = await fetch('/api/users/me', {
+      const response = await apiFetch('/api/users/me', {
         headers: {
           'X-User-Id': userId || '',
           'Authorization': `Bearer ${token || ''}`,
@@ -166,6 +173,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           iin: data.user.iin,
           role: data.user.role,
           egov_auth: data.user.egov_auth,
+          xp: data.user.xp,
+          level: data.user.level,
+          professionalism: data.user.professionalism,
         });
         if (data.freelancer) {
           setFreelancer(data.freelancer);
@@ -211,7 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUser = useCallback(async (data: Partial<User>) => {
     if (!user) return;
     
-    const response = await fetch('/api/users/me', {
+    const response = await apiFetch('/api/users/me', {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -228,7 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateFreelancer = useCallback(async (data: Partial<FreelancerProfile>) => {
     if (!user) return;
     
-    const response = await fetch('/api/users/me', {
+    const response = await apiFetch('/api/users/me', {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -242,7 +252,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, getAuthHeaders, refreshProfile]);
 
   const addEducation = useCallback(async (education: Omit<Education, '_id'>) => {
-    const response = await fetch('/api/profile/education', {
+    const response = await apiFetch('/api/profile/education', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(education),
@@ -256,7 +266,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [getAuthHeaders, refreshProfile]);
 
   const deleteEducation = useCallback(async (id: string) => {
-    const response = await fetch(`/api/profile/education/${id}`, {
+    const response = await apiFetch(`/api/profile/education/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -269,7 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [getAuthHeaders, refreshProfile]);
 
   const addExperience = useCallback(async (experience: Omit<WorkExperience, '_id'>) => {
-    const response = await fetch('/api/profile/experience', {
+    const response = await apiFetch('/api/profile/experience', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(experience),
@@ -283,7 +293,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [getAuthHeaders, refreshProfile]);
 
   const deleteExperience = useCallback(async (id: string) => {
-    const response = await fetch(`/api/profile/experience/${id}`, {
+    const response = await apiFetch(`/api/profile/experience/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -296,7 +306,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [getAuthHeaders, refreshProfile]);
 
   const addSkill = useCallback(async (skill: string) => {
-    const response = await fetch('/api/profile/skills', {
+    const response = await apiFetch('/api/profile/skills', {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ skill }),
@@ -310,7 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [getAuthHeaders, refreshProfile]);
 
   const removeSkill = useCallback(async (skill: string) => {
-    const response = await fetch('/api/profile/skills', {
+    const response = await apiFetch('/api/profile/skills', {
       method: 'DELETE',
       headers: getAuthHeaders(),
       body: JSON.stringify({ skill }),

@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { apiFetch } from '@/lib/api';
 
 interface EgovUser {
   id?: string;
@@ -44,7 +45,7 @@ export default function EgovCallback() {
 
         // Send code to backend for secure token exchange
         const callbackUrl = `/api/auth/egov/callback?code=${encodeURIComponent(code)}${state ? `&state=${encodeURIComponent(state)}` : ''}`;
-        const response = await fetch(callbackUrl, {
+        const response = await apiFetch(callbackUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -86,7 +87,7 @@ export default function EgovCallback() {
           throw new Error('Please sign up or log in before verifying with eGov.kz');
         }
 
-        const verifyResponse = await fetch('/api/auth/egov/verify', {
+        const verifyResponse = await apiFetch('/api/auth/egov/verify', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

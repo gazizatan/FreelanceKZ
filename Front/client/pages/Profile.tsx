@@ -13,10 +13,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { getDefaultEgovAuth } from '@/services/egovAuth';
+import { apiFetch } from '@/lib/api';
 
 export default function Profile() {
   const { t } = useLocale();
-  const { isAuthenticated, user, freelancer, isLoading, logout, updateFreelancer, addEducation, deleteEducation, addExperience, deleteExperience, addSkill, removeSkill } = useAuth();
+  const { isAuthenticated, user, freelancer, isLoading, logout, updateFreelancer, addEducation, deleteEducation, addExperience, deleteExperience, addSkill, removeSkill, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -47,6 +48,7 @@ export default function Profile() {
     skills_used: '',
   });
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isAddingXp, setIsAddingXp] = useState(false);
 
   // Redirect to sign in if not authenticated
   useEffect(() => {
@@ -106,6 +108,38 @@ export default function Profile() {
         description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleTestComplete = async () => {
+    setIsAddingXp(true);
+    try {
+      const userId = localStorage.getItem('user_id');
+      const response = await apiFetch('/api/gamification/xp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': userId || '',
+        },
+        body: JSON.stringify({ amount: 1 }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add XP');
+      }
+      await refreshProfile();
+      toast({
+        title: 'XP gained!',
+        description: 'Test completed. +1 XP',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add XP. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAddingXp(false);
     }
   };
 
@@ -251,6 +285,12 @@ export default function Profile() {
     level: 'novice',
   };
 
+  const gamificationLevel = (user.level || freelancerData.level || 'novice') as 'novice' | 'intermediate' | 'expert' | 'master' | 'legend';
+  const gamificationProgress = typeof user.professionalism === 'number'
+    ? user.professionalism
+    : (freelancerData.professionalism || 0);
+  const gamificationXp = typeof user.xp === 'number' ? user.xp : 0;
+
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       <Navbar />
@@ -365,7 +405,7 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Stats Grid */}
+          {/* Gamification Card */}
           <div className="mb-12">
             <Card className="p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -408,6 +448,7 @@ export default function Profile() {
             </Card>
           </div>
 
+          {/* Stats Grid */}
           <div className="mb-12 grid gap-6 md:grid-cols-4">
             <Card className="p-6">
               <div className="mb-2 flex items-center justify-between">
@@ -440,6 +481,19 @@ export default function Profile() {
               </div>
               <p className="text-3xl font-bold text-foreground">98%</p>
             </Card>
+
+            <Card className="p-6 md:col-span-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">XP</p>
+                  <p className="text-3xl font-bold text-foreground">{gamificationXp}</p>
+                  <p className="text-xs text-muted-foreground">Complete tests to earn +1 XP</p>
+                </div>
+                <Button variant="outline" onClick={handleTestComplete} disabled={isAddingXp}>
+                  {isAddingXp ? 'Adding XP...' : 'Complete Test (+1 XP)'}
+                </Button>
+              </div>
+            </Card>
           </div>
 
           {/* Main Content Tabs */}
@@ -447,8 +501,8 @@ export default function Profile() {
             {/* Left Column - Progress Card */}
             <div className="lg:col-span-1">
               <LevelProgressCard
-                currentLevel={freelancerData.level || 'novice'}
-                progressPercentage={freelancerData.professionalism || 0}
+                currentLevel={gamificationLevel}
+                progressPercentage={gamificationProgress}
                 completedProjects={freelancerData.completed_projects || 0}
                 rating={freelancerData.rating || 0}
               />

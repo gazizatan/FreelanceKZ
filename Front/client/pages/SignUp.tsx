@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ArrowRight, CheckCircle2, User, Mail, Lock, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { apiFetch, readErrorMessage, readJsonSafe } from '@/lib/api';
 
 export default function SignUp() {
   const { login, isAuthenticated } = useAuth();
@@ -58,7 +59,7 @@ export default function SignUp() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await apiFetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -71,11 +72,14 @@ export default function SignUp() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Registration failed');
+        const message = await readErrorMessage(response, 'Registration failed');
+        throw new Error(message);
       }
 
-      const data = await response.json();
+      const data = await readJsonSafe<{ user_id: string; role?: string }>(response);
+      if (!data?.user_id) {
+        throw new Error('Registration failed: invalid response');
+      }
 
       login({
         id: data.user_id,
@@ -83,6 +87,9 @@ export default function SignUp() {
         fullName: formData.fullName,
         role: formData.role,
         egov_auth: false,
+        xp: 0,
+        level: 'novice',
+        professionalism: 0,
       });
 
       toast({
@@ -92,7 +99,10 @@ export default function SignUp() {
 
       setStep(2);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Registration failed';
+      let message = err instanceof Error ? err.message : 'Registration failed';
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        message = 'API timeout. Check backend URL and server.';
+      }
       toast({
         title: 'Error',
         description: message,

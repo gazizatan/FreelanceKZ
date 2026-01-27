@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ArrowRight, LogIn, Mail, Lock } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { apiFetch, readErrorMessage, readJsonSafe } from '@/lib/api';
 
 export default function SignIn() {
   const { login, isAuthenticated } = useAuth();
@@ -44,7 +45,7 @@ export default function SignIn() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -54,13 +55,16 @@ export default function SignIn() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Login failed');
+        const message = await readErrorMessage(response, 'Login failed');
+        throw new Error(message);
       }
 
-      const data = await response.json();
+      const data = await readJsonSafe<{ user_id: string; role?: string }>(response);
+      if (!data?.user_id) {
+        throw new Error('Login failed: invalid response');
+      }
 
-      const profileResponse = await fetch('/api/users/me', {
+      const profileResponse = await apiFetch('/api/users/me', {
         headers: {
           'X-User-Id': data.user_id,
         },
@@ -73,16 +77,21 @@ export default function SignIn() {
       } as { id: string; email?: string; fullName?: string; phone?: string; iin?: string; role?: string; egov_auth?: boolean };
 
       if (profileResponse.ok) {
-        const profile = await profileResponse.json();
-        userData = {
-          id: profile.user._id,
-          email: profile.user.email,
-          fullName: profile.user.fullName,
-          phone: profile.user.phone,
-          iin: profile.user.iin,
-          role: profile.user.role,
-          egov_auth: profile.user.egov_auth,
-        };
+        const profile = await readJsonSafe<any>(profileResponse);
+        if (profile?.user) {
+          userData = {
+            id: profile.user._id,
+            email: profile.user.email,
+            fullName: profile.user.fullName,
+            phone: profile.user.phone,
+            iin: profile.user.iin,
+            role: profile.user.role,
+            egov_auth: profile.user.egov_auth,
+            xp: profile.user.xp,
+            level: profile.user.level,
+            professionalism: profile.user.professionalism,
+          };
+        }
       }
 
       login(userData);
@@ -94,7 +103,10 @@ export default function SignIn() {
 
       navigate('/profile', { replace: true });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed';
+      let message = err instanceof Error ? err.message : 'Login failed';
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        message = 'API timeout. Check backend URL and server.';
+      }
       toast({
         title: 'Error',
         description: message,
