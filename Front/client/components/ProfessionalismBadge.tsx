@@ -14,31 +14,31 @@ const LEVELS = {
     label: 'Novice',
     colors: 'from-gray-400 to-gray-500',
     starCount: 1,
-    bgColor: 'bg-gray-50',
+    bgColor: 'bg-gray-50 dark:bg-gray-900/60',
   },
   intermediate: {
     label: 'Intermediate',
     colors: 'from-emerald-400 to-emerald-500',
     starCount: 2,
-    bgColor: 'bg-emerald-50',
+    bgColor: 'bg-emerald-50 dark:bg-emerald-950/60',
   },
   expert: {
     label: 'Expert',
     colors: 'from-blue-400 to-blue-600',
     starCount: 3,
-    bgColor: 'bg-blue-50',
+    bgColor: 'bg-blue-50 dark:bg-blue-950/60',
   },
   master: {
     label: 'Master',
     colors: 'from-purple-500 to-purple-700',
     starCount: 4,
-    bgColor: 'bg-purple-50',
+    bgColor: 'bg-purple-50 dark:bg-purple-950/60',
   },
   legend: {
     label: 'Legend',
     colors: 'from-yellow-400 to-red-500',
     starCount: 5,
-    bgColor: 'bg-yellow-50',
+    bgColor: 'bg-yellow-50 dark:bg-yellow-950/60',
   },
 };
 
@@ -54,7 +54,7 @@ export default function ProfessionalismBadge({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 rounded-full px-3 py-1.5 transition-all',
+        'flex items-center gap-2 rounded-full px-3 py-1.5 transition-all ring-1 ring-border/60',
         config.bgColor,
         size === 'lg' && 'px-4 py-2'
       )}

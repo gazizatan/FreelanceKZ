@@ -3,16 +3,19 @@ import { useLocale } from '@/contexts/LocaleContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Locale } from '@/data/locales';
-import { Globe, LogOut, User } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
+import { LogOut, Moon, Sun, User } from 'lucide-react';
 
 export default function Navbar() {
   const { locale, setLocale, t } = useLocale();
+  const { theme, toggleTheme } = useTheme();
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const role = user?.role || 'guest';
   const canPostJob = role === 'client' || role === 'both' || role === 'admin' || role === 'guest';
   const canFindJobs = role === 'freelancer' || role === 'both' || role === 'admin' || role === 'guest';
   const canBrowseTalents = role === 'client' || role === 'both' || role === 'admin' || role === 'guest';
+  const canTakeTests = role === 'freelancer' || role === 'both' || role === 'admin' || role === 'guest';
 
   const handleLogout = () => {
     logout();
@@ -25,8 +28,8 @@ export default function Navbar() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-15 w-15 items-center justify-center rounded-lg from-primary to-secondary">
-              <img src="logo.png" alt="logo" className="h-12 w-12" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-border dark:bg-white">
+              <img src="logo.png" alt="logo" className="h-10 w-10" />
             </div>
             <span className="hidden font-bold text-foreground sm:inline">FreelanceKZ</span>
           </Link>
@@ -46,7 +49,15 @@ export default function Navbar() {
                 to="/jobs"
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                Find Jobs
+                {t('nav.findJobs')}
+              </Link>
+            )}
+            {canTakeTests && (
+              <Link
+                to="/tests"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {t('nav.tests')}
               </Link>
             )}
             {canPostJob && (
@@ -78,6 +89,16 @@ export default function Navbar() {
               ))}
             </div>
 
+            {/* Theme Toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-foreground transition-colors hover:text-primary"
+              aria-label={theme === 'dark' ? t('nav.themeLight') : t('nav.themeDark')}
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+
             {/* Authenticated User Menu */}
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
@@ -86,7 +107,7 @@ export default function Navbar() {
                     <User className="text-primary" size={18} />
                   </div>
                   <span className="hidden text-sm font-medium text-foreground sm:inline">
-                    {user?.fullName || 'My Profile'}
+                    {user?.fullName || t('nav.profile')}
                   </span>
                 </Link>
                 <Button
@@ -96,7 +117,7 @@ export default function Navbar() {
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <LogOut size={16} className="mr-2" />
-                  <span className="hidden sm:inline">Sign Out</span>
+                  <span className="hidden sm:inline">{t('nav.signOut')}</span>
                 </Button>
               </div>
             ) : (

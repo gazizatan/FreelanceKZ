@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LocaleProvider } from "@/contexts/LocaleContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import Index from "./pages/Index";
 import BrowseTalents from "./pages/BrowseTalents";
 import FreelanceVacancies from "./pages/FreelanceVacancies";
@@ -17,6 +18,8 @@ import SignIn from "./pages/SignIn";
 import EgovCallback from "./pages/EgovCallback";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Tests from "./pages/Tests";
+import TestReact from "./pages/TestReact";
 
 const queryClient = new QueryClient();
 
@@ -45,28 +48,32 @@ clearStaleAuthTokens();
 
 const App = () => (
   <LocaleProvider>
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/browse" element={<BrowseTalents />} />
-              <Route path="/jobs" element={<FreelanceVacancies />} />
-              <Route path="/post-job" element={<PostJob />} />
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/auth/egov/callback" element={<EgovCallback />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/browse" element={<BrowseTalents />} />
+                <Route path="/jobs" element={<FreelanceVacancies />} />
+                <Route path="/post-job" element={<PostJob />} />
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/auth/egov/callback" element={<EgovCallback />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/tests" element={<Tests />} />
+              <Route path="/tests/react" element={<TestReact />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </AuthProvider>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </LocaleProvider>
 );
 
